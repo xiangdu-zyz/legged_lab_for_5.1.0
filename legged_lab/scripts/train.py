@@ -61,10 +61,12 @@ def train():
         env_cfg.scene.num_envs = args_cli.num_envs
 
     agent_cfg = update_rsl_rl_cfg(agent_cfg, args_cli)
+    env_cfg.device = args_cli.device
+    agent_cfg.device = args_cli.device
     env_cfg.scene.seed = agent_cfg.seed
 
     if args_cli.distributed:
-        env_cfg.sim.device = f"cuda:{app_launcher.local_rank}"
+        env_cfg.device = f"cuda:{app_launcher.local_rank}"
         agent_cfg.device = f"cuda:{app_launcher.local_rank}"
 
         # set seed to have diversity in different threads

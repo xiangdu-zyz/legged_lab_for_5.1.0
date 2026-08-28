@@ -74,6 +74,8 @@ def play():
         env_cfg.scene.num_envs = args_cli.num_envs
 
     agent_cfg = update_rsl_rl_cfg(agent_cfg, args_cli)
+    env_cfg.device = args_cli.device
+    agent_cfg.device = args_cli.device
     env_cfg.scene.seed = agent_cfg.seed
 
     env_class = task_registry.get_task_class(env_class_name)
@@ -91,9 +93,11 @@ def play():
     policy = runner.get_inference_policy(device=env.device)
 
     export_model_dir = os.path.join(os.path.dirname(resume_path), "exported")
-    export_policy_as_jit(runner.alg.policy, runner.obs_normalizer, path=export_model_dir, filename="policy.pt")
+    policy_nn = runner.alg.policy
+    normalizer = getattr(policy_nn, "actor_obs_normalizer", None)
+    export_policy_as_jit(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.pt")
     export_policy_as_onnx(
-        runner.alg.policy, normalizer=runner.obs_normalizer, path=export_model_dir, filename="policy.onnx"
+        policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx"
     )
 
     if not args_cli.headless:
@@ -101,7 +105,7 @@ def play():
 
         keyboard = Keyboard(env)  # noqa:F841
 
-    obs, _ = env.get_observations()
+    obs = env.get_observations()
 
     while simulation_app.is_running():
 

@@ -18,6 +18,7 @@ from legged_lab.assets.fftai import GR2_CFG
 from legged_lab.envs.base.base_env_config import (  # noqa:F401
     BaseAgentCfg,
     BaseEnvCfg,
+    BaseRecurrentAgentCfg,
     BaseSceneCfg,
     DomainRandCfg,
     HeightScannerCfg,
@@ -146,15 +147,6 @@ class GR2RoughEnvCfg(GR2FlatEnvCfg):
 
 
 @configclass
-class GR2RoughAgentCfg(BaseAgentCfg):
+class GR2RoughAgentCfg(BaseRecurrentAgentCfg):
     experiment_name: str = "gr2_rough"
     wandb_project: str = "gr2_rough"
-
-    def __post_init__(self):
-        super().__post_init__()
-        self.policy.class_name = "ActorCriticRecurrent"
-        self.policy.actor_hidden_dims = [256, 256, 128]
-        self.policy.critic_hidden_dims = [256, 256, 128]
-        self.policy.rnn_hidden_size = 256
-        self.policy.rnn_num_layers = 1
-        self.policy.rnn_type = "lstm"

@@ -9,17 +9,18 @@
 # This file contains code derived from Isaac Lab Project (BSD-3-Clause license)
 # with modifications by Legged Lab Project (BSD-3-Clause license).
 
-from distutils.core import setup
-
-from setuptools import find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="LeggedLab",
     packages=find_packages(),
     version="1.0.0",
+    python_requires=">=3.11,<3.12",
     install_requires=[
-        # 'isaacsim',
-        "IsaacLab",
-        "rsl-rl-lib>=2.3.0",
+        # Isaac Sim is installed separately; the Isaac Lab pip meta-package is
+        # pinned here for the supported binary installation.
+        "IsaacLab==2.3.0",
+        "rsl-rl-lib==3.0.1",
+        "tensordict>=0.7.0",
     ],
 )

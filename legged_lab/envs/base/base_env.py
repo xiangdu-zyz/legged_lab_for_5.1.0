@@ -22,6 +22,7 @@ from isaaclab.sensors import ContactSensor, RayCaster
 from isaaclab.sim import PhysxCfg, SimulationContext
 from isaaclab.utils.buffers import CircularBuffer, DelayBuffer
 from rsl_rl.env import VecEnv
+from tensordict import TensorDict
 
 from legged_lab.envs.base.base_env_config import BaseEnvCfg
 from legged_lab.utils.env_utils.scene import SceneCfg
@@ -87,7 +88,7 @@ class BaseEnv(VecEnv):
         self.extras = {}
 
         self.max_episode_length_s = self.cfg.scene.max_episode_length_s
-        self.max_episode_length = np.ceil(self.max_episode_length_s / self.step_dt)
+        self.max_episode_length = int(np.ceil(self.max_episode_length_s / self.step_dt))
         self.num_actions = self.robot.data.default_joint_pos.shape[1]
         self.clip_actions = self.cfg.normalization.clip_actions
         self.clip_obs = self.cfg.normalization.clip_observations
@@ -130,7 +131,7 @@ class BaseEnv(VecEnv):
         robot = self.robot
         net_contact_forces = self.contact_sensor.data.net_forces_w_history
 
-        ang_vel = robot.data.root_ang_vel_b
+        ang_vel = robot.data.root_com_ang_vel_b
         projected_gravity = robot.data.projected_gravity_b
         command = self.command_generator.command
         joint_pos = robot.data.joint_pos - robot.data.default_joint_pos
@@ -148,7 +149,7 @@ class BaseEnv(VecEnv):
             dim=-1,
         )
 
-        root_lin_vel = robot.data.root_lin_vel_b
+        root_lin_vel = robot.data.root_com_lin_vel_b
         feet_contact = torch.max(torch.norm(net_contact_forces[:, :, self.feet_cfg.body_ids], dim=-1), dim=1)[0] > 0.5
         current_critic_obs = torch.cat(
             [current_actor_obs, root_lin_vel * self.obs_scales.lin_vel, feet_contact], dim=-1
@@ -242,9 +243,11 @@ class BaseEnv(VecEnv):
         self.reset(env_ids)
 
         actor_obs, critic_obs = self.compute_observations()
-        self.extras["observations"] = {"critic": critic_obs}
+        observations = TensorDict(
+            {"policy": actor_obs, "critic": critic_obs}, batch_size=[self.num_envs], device=self.device
+        )
 
-        return actor_obs, reward_buf, self.reset_buf, self.extras
+        return observations, reward_buf, self.reset_buf.to(dtype=torch.long), self.extras
 
     def check_reset(self):
         net_contact_forces = self.contact_sensor.data.net_forces_w_history
@@ -297,7 +300,9 @@ class BaseEnv(VecEnv):
         )
 
     def update_terrain_levels(self, env_ids):
-        distance = torch.norm(self.robot.data.root_pos_w[env_ids, :2] - self.scene.env_origins[env_ids, :2], dim=1)
+        distance = torch.norm(
+            self.robot.data.root_link_pos_w[env_ids, :2] - self.scene.env_origins[env_ids, :2], dim=1
+        )
         move_up = distance > self.scene.terrain.cfg.terrain_generator.size[0] / 2
         move_down = (
             distance < torch.norm(self.command_generator.command[env_ids, :2], dim=1) * self.max_episode_length_s * 0.5
@@ -309,8 +314,9 @@ class BaseEnv(VecEnv):
 
     def get_observations(self):
         actor_obs, critic_obs = self.compute_observations()
-        self.extras["observations"] = {"critic": critic_obs}
-        return actor_obs, self.extras
+        return TensorDict(
+            {"policy": actor_obs, "critic": critic_obs}, batch_size=[self.num_envs], device=self.device
+        )
 
     @staticmethod
     def seed(seed: int = -1) -> int:

@@ -18,6 +18,7 @@ from isaaclab.utils import configclass
 from isaaclab_rl.rsl_rl import (  # noqa:F401
     RslRlOnPolicyRunnerCfg,
     RslRlPpoActorCriticCfg,
+    RslRlPpoActorCriticRecurrentCfg,
     RslRlPpoAlgorithmCfg,
     RslRlRndCfg,
     RslRlSymmetryCfg,
@@ -174,11 +175,13 @@ class BaseAgentCfg(RslRlOnPolicyRunnerCfg):
     device = "cuda:0"
     num_steps_per_env = 24
     max_iterations = 50000
-    empirical_normalization = False
+    obs_groups = {"policy": ["policy"], "critic": ["critic"]}
     policy = RslRlPpoActorCriticCfg(
         class_name="ActorCritic",
         init_noise_std=1.0,
         noise_std_type="scalar",
+        actor_obs_normalization=False,
+        critic_obs_normalization=False,
         actor_hidden_dims=[512, 256, 128],
         critic_hidden_dims=[512, 256, 128],
         activation="elu",
@@ -214,3 +217,20 @@ class BaseAgentCfg(RslRlOnPolicyRunnerCfg):
 
     def __post_init__(self):
         pass
+
+
+@configclass
+class BaseRecurrentAgentCfg(BaseAgentCfg):
+    policy = RslRlPpoActorCriticRecurrentCfg(
+        class_name="ActorCriticRecurrent",
+        init_noise_std=1.0,
+        noise_std_type="scalar",
+        actor_obs_normalization=False,
+        critic_obs_normalization=False,
+        actor_hidden_dims=[256, 256, 128],
+        critic_hidden_dims=[256, 256, 128],
+        activation="elu",
+        rnn_type="lstm",
+        rnn_hidden_dim=256,
+        rnn_num_layers=1,
+    )

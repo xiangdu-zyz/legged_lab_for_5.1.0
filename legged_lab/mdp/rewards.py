@@ -28,7 +28,7 @@ def track_lin_vel_xy_yaw_frame_exp(
 ) -> torch.Tensor:
     asset: Articulation = env.scene[asset_cfg.name]
     vel_yaw = math_utils.quat_apply_inverse(
-        math_utils.yaw_quat(asset.data.root_quat_w), asset.data.root_lin_vel_w[:, :3]
+        math_utils.yaw_quat(asset.data.root_link_quat_w), asset.data.root_com_lin_vel_w[:, :3]
     )
     lin_vel_error = torch.sum(torch.square(env.command_generator.command[:, :2] - vel_yaw[:, :2]), dim=1)
     return torch.exp(-lin_vel_error / std**2)
@@ -38,18 +38,18 @@ def track_ang_vel_z_world_exp(
     env: BaseEnv, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     asset: Articulation = env.scene[asset_cfg.name]
-    ang_vel_error = torch.square(env.command_generator.command[:, 2] - asset.data.root_ang_vel_w[:, 2])
+    ang_vel_error = torch.square(env.command_generator.command[:, 2] - asset.data.root_com_ang_vel_w[:, 2])
     return torch.exp(-ang_vel_error / std**2)
 
 
 def lin_vel_z_l2(env: BaseEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     asset: Articulation = env.scene[asset_cfg.name]
-    return torch.square(asset.data.root_lin_vel_b[:, 2])
+    return torch.square(asset.data.root_com_lin_vel_b[:, 2])
 
 
 def ang_vel_xy_l2(env: BaseEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     asset: Articulation = env.scene[asset_cfg.name]
-    return torch.sum(torch.square(asset.data.root_ang_vel_b[:, :2]), dim=1)
+    return torch.sum(torch.square(asset.data.root_com_ang_vel_b[:, :2]), dim=1)
 
 
 def energy(env: BaseEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
@@ -118,7 +118,7 @@ def feet_slide(
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     contacts = contact_sensor.data.net_forces_w_history[:, :, sensor_cfg.body_ids, :].norm(dim=-1).max(dim=1)[0] > 1.0
     asset: Articulation = env.scene[asset_cfg.name]
-    body_vel = asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2]
+    body_vel = asset.data.body_com_lin_vel_w[:, asset_cfg.body_ids, :2]
     reward = torch.sum(body_vel.norm(dim=-1) * contacts, dim=1)
     return reward
 
@@ -143,7 +143,7 @@ def joint_deviation_l1(env: BaseEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg(
 def body_orientation_l2(env: BaseEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     asset: Articulation = env.scene[asset_cfg.name]
     body_orientation = math_utils.quat_apply_inverse(
-        asset.data.body_quat_w[:, asset_cfg.body_ids[0], :], asset.data.GRAVITY_VEC_W
+        asset.data.body_link_quat_w[:, asset_cfg.body_ids[0], :], asset.data.GRAVITY_VEC_W
     )
     return torch.sum(torch.square(body_orientation[:, :2]), dim=1)
 
@@ -162,6 +162,6 @@ def feet_too_near_humanoid(
 ) -> torch.Tensor:
     assert len(asset_cfg.body_ids) == 2
     asset: Articulation = env.scene[asset_cfg.name]
-    feet_pos = asset.data.body_pos_w[:, asset_cfg.body_ids, :]
+    feet_pos = asset.data.body_link_pos_w[:, asset_cfg.body_ids, :]
     distance = torch.norm(feet_pos[:, 0] - feet_pos[:, 1], dim=-1)
     return (threshold - distance).clamp(min=0)

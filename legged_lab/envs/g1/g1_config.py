@@ -18,6 +18,7 @@ from legged_lab.assets.unitree import G1_CFG
 from legged_lab.envs.base.base_env_config import (  # noqa:F401
     BaseAgentCfg,
     BaseEnvCfg,
+    BaseRecurrentAgentCfg,
     BaseSceneCfg,
     DomainRandCfg,
     HeightScannerCfg,
@@ -149,15 +150,6 @@ class G1RoughEnvCfg(G1FlatEnvCfg):
 
 
 @configclass
-class G1RoughAgentCfg(BaseAgentCfg):
+class G1RoughAgentCfg(BaseRecurrentAgentCfg):
     experiment_name: str = "g1_rough"
     wandb_project: str = "g1_rough"
-
-    def __post_init__(self):
-        super().__post_init__()
-        self.policy.class_name = "ActorCriticRecurrent"
-        self.policy.actor_hidden_dims = [256, 256, 128]
-        self.policy.critic_hidden_dims = [256, 256, 128]
-        self.policy.rnn_hidden_size = 256
-        self.policy.rnn_num_layers = 1
-        self.policy.rnn_type = "lstm"
