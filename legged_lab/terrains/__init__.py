@@ -11,3 +11,11 @@
 
 
 from .terrain_generator_cfg import *
+from .g1_motion_terrains import (
+    G1MotionStairsCfg,
+    G1_OBSTACLES_179_305_CFG,
+    G1_OBSTACLES_405_581_CFG,
+    G1_MOTION_TERRAIN_FILES,
+    G1_MOTION_TERRAIN_PROFILES,
+    make_g1_motion_terrain,
+)

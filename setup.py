@@ -15,6 +15,16 @@ setup(
     name="LeggedLab",
     packages=find_packages(),
     version="1.0.0",
+    package_data={
+        "legged_lab.assets.unitree": [
+            "resources/unitree_g1/*",
+            "resources/unitree_g1/meshes/*",
+            "resources/unitree_g1/urdf/*",
+            "resources/unitree_g1/launch/*",
+        ],
+        "legged_lab.utils.motion_reference": ["LICENSE"],
+    },
+    extras_require={"mimic": ["pytorch-kinematics==0.10.0"]},
     python_requires=">=3.11,<3.12",
     install_requires=[
         # Isaac Sim is installed separately; the Isaac Lab pip meta-package is

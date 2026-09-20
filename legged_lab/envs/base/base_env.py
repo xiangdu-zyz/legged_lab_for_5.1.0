@@ -318,6 +318,24 @@ class BaseEnv(VecEnv):
             {"policy": actor_obs, "critic": critic_obs}, batch_size=[self.num_envs], device=self.device
         )
 
+    def close(self):
+        """Release scene callbacks and PhysX before shutting down Isaac Sim."""
+        if getattr(self, "_is_closed", False):
+            return
+        for name in ("command_generator", "reward_manager", "event_manager", "height_scanner",
+                     "contact_sensor", "robot", "scene"):
+            if hasattr(self, name):
+                delattr(self, name)
+        if self.sim.cfg.create_stage_in_memory:
+            import omni.physx
+
+            omni.physx.get_physx_simulation_interface().detach_stage()
+            self.sim.stop()
+            self.sim.clear()
+        self.sim.clear_all_callbacks()
+        self.sim.clear_instance()
+        self._is_closed = True
+
     @staticmethod
     def seed(seed: int = -1) -> int:
         try:
